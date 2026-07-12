@@ -1,0 +1,2 @@
+# Pre-commit de MecAI: corre eslint --fix + prettier sobre archivos staged
+npx lint-staged

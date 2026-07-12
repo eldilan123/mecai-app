@@ -1,0 +1,9 @@
+node_modules
+.expo
+.claude
+dist
+ios
+android
+package-lock.json
+*.icon
+assets
