@@ -55,6 +55,35 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
   tokens para `className`. **Mantener ambos sincronizados.**
 - `supabase/` — migrations + edge functions (HU-04). `assets/` — logo, icons, etc.
 
+## Backend / Supabase (HU-04)
+
+- **`supabase/migrations/`** — SQL versionado (formato `YYYYMMDDHHMMSS_nombre.sql`):
+  `initial_schema` (7 tablas + triggers), `indexes`, `rls_policies` (RLS en TODAS
+  las tablas), `seed_maintenance_types` (17 tipos). Ya aplicadas al proyecto remoto.
+- **`supabase/functions/`** — Edge Functions Deno (runtime distinto; excluidas del
+  `tsc`/eslint de la app):
+  - `ai-assistant` — proxy a Claude (auth + rate limiting + selección de modelo).
+  - `calculate-schedules` — cron que recalcula `maintenance_schedules`.
+  - `send-reminders` — cron de push notifications (stub hasta HU-13).
+- **Cliente:** `src/services/supabase.ts` exporta `supabase` (tipado con `Database`)
+  y `getUser()`. Persistencia con AsyncStorage.
+- **Tipos:** `src/types/database.types.ts`. **Regenerar** tras cambios de esquema:
+  `npx supabase gen types typescript --linked > src/types/database.types.ts`
+  (requiere Docker o access token del CLI).
+
+Comandos Supabase comunes:
+
+```bash
+npx supabase db push                 # aplica migraciones nuevas al remoto
+npx supabase functions deploy <fn>   # despliega una Edge Function (requiere access token)
+npx supabase gen types typescript --linked > src/types/database.types.ts
+```
+
+> **Modelos Claude en `ai-assistant`:** default `claude-haiku-4-5-20251001`, premium
+> (diagnóstico) `claude-sonnet-5` (el `claude-sonnet-4-6` del tech spec quedó
+> superseded). **`CLAUDE_API_KEY` es placeholder hasta HU-05** — la función se
+> despliega pero fallará en runtime con la key real hasta entonces.
+
 ## Design System (fuente de verdad)
 
 Los tokens vienen del **Design System v2.0** (`../04-mecai-design-system.md`), **no**
@@ -86,5 +115,6 @@ tech spec · `04` design system.
 
 ## Estado
 
-Épica 1 — **HU-03 (setup) ✅**. Pendiente manual de Dilan: repo remoto en GitHub,
-branch protection, estrategia de ramas. Siguiente: HU-04 (Supabase), HU-05 (cuentas/EAS).
+Épica 1 — **HU-03 (setup) ✅**, **HU-04 (Supabase) ✅** (BD + RLS + seed aplicados al
+remoto; Edge Functions escritas — deploy pendiente de un access token del CLI).
+Siguiente: HU-05 (cuentas/EAS), HU-06+ (features de la Épica 2).

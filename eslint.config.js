@@ -38,6 +38,7 @@ module.exports = defineConfig([
   // Prettier al final: apaga todo lo de formato para que no pelee con Prettier
   eslintConfigPrettier,
   {
-    ignores: ['dist/*', '.expo/*', 'node_modules/*', 'expo-env.d.ts'],
+    // supabase/functions son Edge Functions Deno (runtime distinto): fuera del lint de la app
+    ignores: ['dist/*', '.expo/*', 'node_modules/*', 'expo-env.d.ts', 'supabase/functions/**'],
   },
 ])
