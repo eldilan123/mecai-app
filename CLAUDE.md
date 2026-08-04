@@ -44,9 +44,11 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 ## Estructura
 
 - `app/` — rutas (Expo Router). Grupos: `(auth)`, `(onboarding)`, `(tabs)`,
-  `maintenance/`. El root layout carga fuentes y (a futuro) providers + auth guard.
-- `src/components/{ui,chat,vehicle,maintenance}/` — componentes. `ui/` = primitivos
-  del design system.
+  `maintenance/`. El root layout carga fuentes, arranca el listener de sesión y
+  hace de **auth guard** con `<Stack.Protected>` (HU-06/07).
+- `src/components/{ui,auth,chat,vehicle,maintenance}/` — componentes. `ui/` =
+  primitivos del design system (`Button`, `Input`, `Typography`, `Screen`,
+  `FormError`, `Divider`).
 - `src/services/` — SDKs externos (supabase, claude, notifications, revenuecat, admob).
   **La app nunca llama a Claude directo**: siempre vía Edge Function.
 - `src/store/` — Zustand (`*.store.ts`). `src/hooks/` — `useX.ts`.
@@ -113,8 +115,27 @@ Usa `Typography` (`src/components/ui/Typography.tsx`) para texto: expone la esca
 En la raíz del repo padre (un nivel arriba): `01` brief · `02` roadmap/HUs · `03`
 tech spec · `04` design system.
 
+## Auth (HU-06 / HU-07)
+
+- **Flujo:** `(auth)/welcome` → `register` → `verify-email` · `login` →
+  `forgot-password`. Con sesión activa el guard manda a `(tabs)`.
+- **`src/hooks/useAuth.ts`** — única fuente de verdad de auth: se suscribe una
+  sola vez a `onAuthStateChange` y expone `signIn`, `signUp`, `signOut`,
+  `resetPassword`, `resendVerificationEmail` + `user`, `profile`, `isPremium`,
+  `isLoading`. Todas devuelven `AuthResult` (`{ ok, error }`), nunca lanzan.
+- **`src/hooks/useAuthDeepLink.ts`** — completa la sesión al volver del correo de
+  Supabase (`mecai://auth/callback`). Soporta flujo implícito y PKCE.
+- **Errores:** `getAuthErrorMessage()` (`src/utils/format.utils.ts`) traduce los
+  errores de GoTrue a español. **Nunca mostrar el error crudo al usuario.**
+- **Supabase remoto:** "Confirm email" está **ON** → tras `signUp` NO hay sesión
+  hasta que el usuario abre el enlace. Google OAuth sigue deshabilitado.
+- Para que los correos vuelvan a la app hay que tener `mecai://auth/callback` (y
+  la URL de Expo Go) en **Authentication → URL Configuration → Redirect URLs**.
+
 ## Estado
 
 Épica 1 — **HU-03 (setup) ✅**, **HU-04 (Supabase) ✅** (BD + RLS + seed aplicados al
 remoto; Edge Functions escritas — deploy pendiente de un access token del CLI).
-Siguiente: HU-05 (cuentas/EAS), HU-06+ (features de la Épica 2).
+Épica 2 — **HU-06 (registro) ✅**, **HU-07 (login + sesión) ✅** (falta Google OAuth,
+pendiente de configurar Google Cloud). Siguiente: HU-05 (cuentas/EAS), HU-08
+(registro de vehículo).
