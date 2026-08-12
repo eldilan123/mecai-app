@@ -17,16 +17,21 @@ el taller."_ MVP en 3 épicas (identidad → core IA/onboarding → monetizació
 
 ## Stack (real, no el del tech spec)
 
-- **Expo SDK 56** · React 19 · React Native 0.85 · **TypeScript 6** (strict)
-- **Expo Router** (file-based, carpeta `app/` en la raíz)
+- **Expo SDK 54** · React 19.1 · React Native 0.81 · **TypeScript 5.9** (strict)
+- **Expo Router v6** (file-based, carpeta `app/` en la raíz)
 - **NativeWind v4** + **Tailwind v3** para estilos
 - **Zustand** para estado global (se integra en HUs de features)
 - Backend **Supabase** (HU-04) · IA **Claude API** vía Edge Function (HU-09+)
 - Fuentes: **Sora / Inter / JetBrains Mono** (`@expo-google-fonts`)
 
-> El tech spec (`03`) asumía SDK 52 / TS 5 / Expo Router v4; `create-expo-app@latest`
-> entrega SDK 56, que cumple el requisito "52+". Donde el spec y la realidad de la
-> librería difieran, gana la realidad de la librería (avísale a Dilan si es grande).
+> **Por qué SDK 54 y no el último:** el Expo Go de App Store y Play Store solo
+> soporta hasta SDK 54. Quedarse ahí permite testear en iPhone y Android reales
+> durante todo el MVP sin dev build. **No subas el SDK** sin hablarlo con Dilan:
+> se pierde Expo Go. El tech spec (`03`) pedía "SDK 52+", así que cumple.
+
+> `babel-preset-expo` está declarado explícito en devDependencies. No lo quites:
+> con SDK 54 npm lo anida dentro de `node_modules/expo/` y Metro no lo encuentra
+> ("Cannot find module 'babel-preset-expo'"). Al cambiar de SDK, sincronízalo.
 
 ## Comandos
 
