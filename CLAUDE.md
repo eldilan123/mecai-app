@@ -66,7 +66,8 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 
 - **`supabase/migrations/`** — SQL versionado (formato `YYYYMMDDHHMMSS_nombre.sql`):
   `initial_schema` (7 tablas + triggers), `indexes`, `rls_policies` (RLS en TODAS
-  las tablas), `seed_maintenance_types` (17 tipos). Ya aplicadas al proyecto remoto.
+  las tablas), `seed_maintenance_types` (17 tipos), `fix_handle_new_user_search_path`.
+  Ya aplicadas al proyecto remoto.
 - **`supabase/functions/`** — Edge Functions Deno (runtime distinto; excluidas del
   `tsc`/eslint de la app):
   - `ai-assistant` — proxy a Claude (auth + rate limiting + selección de modelo).
@@ -77,6 +78,24 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 - **Tipos:** `src/types/database.types.ts`. **Regenerar** tras cambios de esquema:
   `npx supabase gen types typescript --linked > src/types/database.types.ts`
   (requiere Docker o access token del CLI).
+
+### Convenciones SQL
+
+1. **Toda función `SECURITY DEFINER` lleva `SET search_path = public`** y califica
+   sus tablas con schema (`public.profiles`, no `profiles`). `SECURITY DEFINER`
+   cambia el _usuario_ con el que corre la función, **no** su `search_path`: ese
+   lo hereda de quien la llama. Los triggers sobre `auth.users` los dispara GoTrue
+   desde un contexto sin `public`, así que sin esto fallan en runtime con
+   "relation does not exist" — y solo se nota al registrarse un usuario real, no
+   al aplicar la migración. Fue exactamente el bug de `handle_new_user()` (HU-04).
+2. **Los fixes de SQL nunca son solo remotos.** Si algo se parcha a mano en el SQL
+   Editor, hay que reflejarlo en `supabase/migrations/` o `supabase db reset`
+   revive el bug. Se corrige la migración original **in-place** y además se agrega
+   una migración nueva con el mismo `CREATE OR REPLACE`, para las BD que ya
+   aplicaron la versión rota.
+3. **`CREATE OR REPLACE` sobre `CREATE`** en funciones, para que las migraciones
+   de corrección sean idempotentes.
+4. **RLS activo en toda tabla nueva**, con su política en `rls_policies`.
 
 Comandos Supabase comunes:
 
