@@ -19,10 +19,16 @@ export interface AuthState {
   profile: Profile | null
   /** True mientras se resuelve el estado de auth inicial (hidratación + getSession). */
   isLoading: boolean
+  /**
+   * Error del último deep link de auth procesado (enlace vencido, inválido…).
+   * Lo escribe `useAuthDeepLink` y lo lee la pantalla `/auth/callback`.
+   */
+  linkError: string | null
 
   setUser: (user: AuthUser | null) => void
   setProfile: (profile: Profile | null) => void
   setLoading: (isLoading: boolean) => void
+  setLinkError: (linkError: string | null) => void
   clearAuth: () => void
 }
 
@@ -32,16 +38,18 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       profile: null,
       isLoading: true,
+      linkError: null,
 
       setUser: (user) => set({ user }),
       setProfile: (profile) => set({ profile }),
       setLoading: (isLoading) => set({ isLoading }),
+      setLinkError: (linkError) => set({ linkError }),
       clearAuth: () => set({ user: null, profile: null }),
     }),
     {
       name: 'mecai-auth',
       storage: createJSONStorage(() => AsyncStorage),
-      // `isLoading` es estado de arranque, no debe persistirse.
+      // `isLoading` y `linkError` son estado de arranque/transitorio: no se persisten.
       partialize: (state) => ({ user: state.user, profile: state.profile }),
     }
   )

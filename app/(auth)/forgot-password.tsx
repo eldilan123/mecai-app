@@ -22,7 +22,7 @@ import {
  * Recuperación de contraseña (HU-07).
  *
  * Supabase manda un enlace de recuperación al correo. Al abrirlo, el deep link
- * `mecai://auth/callback` abre una sesión temporal (evento PASSWORD_RECOVERY) y
+ * a `/auth/callback` abre una sesión temporal (evento PASSWORD_RECOVERY) y
  * el usuario queda dentro de la app.
  *
  * TODO: HU-16 — pantalla de "definir contraseña nueva" tras el PASSWORD_RECOVERY.

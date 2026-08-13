@@ -18,7 +18,7 @@ const RESEND_COOLDOWN_SECONDS = 60
  *
  * El proyecto tiene "Confirm email" activo: tras el signUp no hay sesión hasta
  * que el usuario abre el enlace del correo. Cuando lo abre, el deep link
- * `mecai://auth/callback` crea la sesión y el guard del root layout lo lleva
+ * a `/auth/callback` crea la sesión y el guard del root layout lo lleva
  * al Home — no hace falta que vuelva aquí.
  */
 export default function VerifyEmailScreen() {

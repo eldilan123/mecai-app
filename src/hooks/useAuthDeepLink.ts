@@ -2,13 +2,17 @@ import * as Linking from 'expo-linking'
 import { useEffect } from 'react'
 
 import { supabase } from '@/services/supabase'
+import { useAuthStore } from '@/store/auth.store'
 import { parseAuthDeepLink } from '@/utils/auth.utils'
+import { getAuthErrorMessage, getAuthLinkErrorMessage } from '@/utils/format.utils'
 
 /**
  * Completa la sesión cuando el usuario vuelve a la app desde un correo de
  * Supabase (confirmación de cuenta o recuperación de contraseña).
  *
- * Supabase redirige a `mecai://auth/callback` con:
+ * La URL de vuelta la genera `Linking.createURL('auth/callback')`, así que el
+ * esquema cambia según el entorno: `exp://` en Expo Go, `mecai://` en build
+ * standalone, `http://` en web. Llega con:
  * - flujo implícito (default): `#access_token=...&refresh_token=...`
  * - flujo PKCE:                `?code=...`
  *
@@ -31,23 +35,35 @@ export function useAuthDeepLink(): void {
         return
       }
 
-      if (params.errorDescription) {
-        if (__DEV__) {
-          console.warn('[auth] Deep link con error:', params.errorDescription)
+      const { setLinkError } = useAuthStore.getState()
+
+      if (params.errorCode || params.errorDescription) {
+        setLinkError(getAuthLinkErrorMessage(params.errorCode, params.errorDescription))
+        return
+      }
+
+      setLinkError(null)
+
+      try {
+        if (params.code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(params.code)
+          if (error) {
+            setLinkError(getAuthErrorMessage(error))
+          }
+          return
         }
-        return
-      }
 
-      if (params.code) {
-        await supabase.auth.exchangeCodeForSession(params.code)
-        return
-      }
-
-      if (params.accessToken && params.refreshToken) {
-        await supabase.auth.setSession({
-          access_token: params.accessToken,
-          refresh_token: params.refreshToken,
-        })
+        if (params.accessToken && params.refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: params.accessToken,
+            refresh_token: params.refreshToken,
+          })
+          if (error) {
+            setLinkError(getAuthErrorMessage(error))
+          }
+        }
+      } catch (error) {
+        setLinkError(getAuthErrorMessage(error))
       }
     }
 

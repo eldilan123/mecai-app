@@ -50,6 +50,8 @@ const ERROR_BY_MESSAGE: [needle: string, message: string][] = [
     'email rate limit exceeded',
     'Enviamos varios correos seguidos. Espera un minuto y vuelve a intentar.',
   ],
+  ['email link is invalid or has expired', 'Ese enlace ya venció. Pide uno nuevo.'],
+  ['access_denied', 'El enlace no es válido. Pide uno nuevo desde la app.'],
   ['network request failed', NO_CONNECTION_MESSAGE],
   ['failed to fetch', NO_CONNECTION_MESSAGE],
 ]
@@ -97,6 +99,24 @@ export function getAuthErrorMessage(error: unknown): string {
     return matchByMessage(error) ?? FALLBACK_MESSAGE
   }
 
+  return FALLBACK_MESSAGE
+}
+
+/**
+ * Traduce el error que viene en un deep link de Supabase.
+ *
+ * Los correos no devuelven un `AuthError`: el error llega como parámetros en la
+ * URL (`error_code=otp_expired&error_description=...`), así que se traduce por
+ * código y, si no lo conocemos, por el texto de la descripción.
+ */
+export function getAuthLinkErrorMessage(code?: string, description?: string): string {
+  const byCode = code ? ERROR_BY_CODE[code] : undefined
+  if (byCode) {
+    return byCode
+  }
+  if (description) {
+    return matchByMessage(description) ?? FALLBACK_MESSAGE
+  }
   return FALLBACK_MESSAGE
 }
 

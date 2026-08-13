@@ -8,6 +8,12 @@ import * as Linking from 'expo-linking'
  * `Linking.createURL` resuelve el esquema correcto en cada entorno:
  * - Expo Go:    exp://192.168.x.x:8081/--/auth/callback
  * - Dev/prod:   mecai://auth/callback   (scheme de app.json)
+ * - Web:        http://localhost:8081/auth/callback
+ *
+ * ⚠️ Supabase solo respeta el `redirect_to` si coincide con la allowlist de
+ * **Authentication → URL Configuration → Redirect URLs**. Si no coincide,
+ * ignora la URL en silencio y usa el Site URL — que es exactamente cómo se
+ * rompe el flujo en Expo Go si falta `exp://**` en la lista.
  */
 export const AUTH_CALLBACK_PATH = 'auth/callback'
 
@@ -23,6 +29,8 @@ export interface AuthDeepLinkParams {
   code?: string
   /** Tipo de enlace: 'signup' | 'recovery' | 'magiclink' | 'invite'. */
   type?: string
+  /** Código de error de GoTrue, p. ej. 'otp_expired'. */
+  errorCode?: string
   errorDescription?: string
 }
 
@@ -52,9 +60,10 @@ export function parseAuthDeepLink(url: string): AuthDeepLinkParams | null {
   const accessToken = params.get('access_token')
   const refreshToken = params.get('refresh_token')
   const code = params.get('code')
+  const errorCode = params.get('error_code')
   const errorDescription = params.get('error_description') ?? params.get('error')
 
-  if (!accessToken && !code && !errorDescription) {
+  if (!accessToken && !code && !errorCode && !errorDescription) {
     return null
   }
 
@@ -63,6 +72,7 @@ export function parseAuthDeepLink(url: string): AuthDeepLinkParams | null {
     refreshToken,
     code,
     type: params.get('type'),
+    errorCode,
     errorDescription: errorDescription ? decodeURIComponent(errorDescription) : undefined,
   }
 }

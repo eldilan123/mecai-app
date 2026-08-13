@@ -148,13 +148,31 @@ tech spec · `04` design system.
   `resetPassword`, `resendVerificationEmail` + `user`, `profile`, `isPremium`,
   `isLoading`. Todas devuelven `AuthResult` (`{ ok, error }`), nunca lanzan.
 - **`src/hooks/useAuthDeepLink.ts`** — completa la sesión al volver del correo de
-  Supabase (`mecai://auth/callback`). Soporta flujo implícito y PKCE.
+  Supabase. Soporta flujo implícito y PKCE. La pantalla `app/auth/callback.tsx`
+  es solo la cara visible (spinner / error): sin esa ruta, Expo Router muestra
+  "Unmatched Route" al abrir el enlace.
+- **URL de retorno:** siempre `Linking.createURL('auth/callback')`
+  (`getAuthRedirectUrl()`), **nunca** `mecai://` a mano — el esquema cambia por
+  entorno: `exp://IP:PORT/--/...` en Expo Go, `mecai://...` en standalone,
+  `http://localhost:8081/...` en web.
 - **Errores:** `getAuthErrorMessage()` (`src/utils/format.utils.ts`) traduce los
   errores de GoTrue a español. **Nunca mostrar el error crudo al usuario.**
 - **Supabase remoto:** "Confirm email" está **ON** → tras `signUp` NO hay sesión
   hasta que el usuario abre el enlace. Google OAuth sigue deshabilitado.
-- Para que los correos vuelvan a la app hay que tener `mecai://auth/callback` (y
-  la URL de Expo Go) en **Authentication → URL Configuration → Redirect URLs**.
+- **Redirect URLs (config manual en el dashboard).** Supabase solo respeta el
+  `redirect_to` si está en la allowlist de **Authentication → URL Configuration
+  → Redirect URLs**; si no coincide, la ignora **en silencio** y manda al Site
+  URL. Eso rompe el flujo sin dar ningún error visible. Deben estar los tres:
+
+  | Entorno                        | Entrada                    |
+  | ------------------------------ | -------------------------- |
+  | Build standalone               | `mecai://auth/callback`    |
+  | Expo Go (la IP/puerto cambian) | `exp://**`                 |
+  | Preview web                    | `http://localhost:8081/**` |
+
+  El **Site URL** debe ser una URL abrible por un navegador (una landing o
+  `http://localhost:8081`), no `mecai:` — es el fallback cuando algo no matchea,
+  y un esquema custom ahí produce el "no se pudo abrir la aplicación" de Chrome.
 
 ## Estado
 
