@@ -9,10 +9,11 @@ import { colors, typography } from '@/constants/theme'
 /**
  * Input del design system (Design System v2.0 §4/§5).
  *
- * - Label opcional arriba (body-sm, neutral-700)
- * - Fondo neutral-100, borde neutral-200, radius sm (8px), padding 12px
+ * - Label opcional arriba (body-sm medium, neutral-700), separado 8px del campo
+ * - Fondo neutral-100, borde neutral-200, radius sm (8px)
  * - Foco: borde primary-400 · Error: borde error + mensaje debajo
- * - `type="password"` añade el toggle show/hide con íconos Lucide
+ * - `icon` pinta un ícono guía a la izquierda (neutral-500 → primary-600 al foco)
+ * - `type="password"` añade el toggle show/hide (área táctil de 44px)
  */
 export type InputType = 'text' | 'email' | 'password'
 
@@ -20,6 +21,8 @@ export interface InputProps extends Omit<TextInputProps, 'style' | 'secureTextEn
   label?: string
   error?: string
   type?: InputType
+  /** Ícono guía a la izquierda del campo (Lucide, tamaño 20). */
+  icon?: React.ReactNode
   /** Texto de ayuda debajo del input (se oculta si hay error). */
   hint?: string
   className?: string
@@ -47,7 +50,7 @@ const TYPE_PROPS: Record<InputType, Partial<TextInputProps>> = {
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, type = 'text', hint, className, onFocus, onBlur, ...rest },
+  { label, error, type = 'text', icon, hint, className, onFocus, onBlur, ...rest },
   ref
 ) {
   const [isFocused, setIsFocused] = useState(false)
@@ -65,7 +68,12 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
   return (
     <View className={`w-full ${className ?? ''}`}>
       {label ? (
-        <Typography variant="body-sm" color={colors.neutral[700]} className="mb-1">
+        <Typography
+          variant="body-sm"
+          color={colors.neutral[700]}
+          className="mb-2"
+          style={{ fontFamily: typography.fontBodyMedium }}
+        >
           {label}
         </Typography>
       ) : null}
@@ -73,6 +81,8 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
       <View
         className={`flex-row items-center rounded-sm border bg-neutral-100 px-3 ${borderClass}`}
       >
+        {icon ? <View className="mr-2">{icon}</View> : null}
+
         <TextInput
           ref={ref}
           placeholderTextColor={colors.neutral[500]}
@@ -87,7 +97,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           }}
           style={{
             flex: 1,
-            paddingVertical: 12,
+            paddingVertical: 14,
             fontFamily: typography.fontBody,
             fontSize: typography.sizes.base,
             color: colors.neutral[900],
@@ -100,25 +110,26 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-            hitSlop={8}
+            hitSlop={12}
             onPress={() => setIsPasswordVisible((visible) => !visible)}
-            className="pl-2"
+            // 44px de área táctil (guideline iOS/Android) sin agrandar el campo
+            className="h-11 w-11 items-center justify-center"
           >
             {isPasswordVisible ? (
-              <EyeOff size={20} color={colors.neutral[500]} />
+              <EyeOff size={24} color={colors.neutral[500]} />
             ) : (
-              <Eye size={20} color={colors.neutral[500]} />
+              <Eye size={24} color={colors.neutral[500]} />
             )}
           </Pressable>
         ) : null}
       </View>
 
       {hasError ? (
-        <Typography variant="body-sm" color={colors.error} className="mt-1">
+        <Typography variant="body-sm" color={colors.error} className="mt-2">
           {error}
         </Typography>
       ) : hint ? (
-        <Typography variant="body-sm" color={colors.neutral[500]} className="mt-1">
+        <Typography variant="body-sm" color={colors.neutral[500]} className="mt-2">
           {hint}
         </Typography>
       ) : null}

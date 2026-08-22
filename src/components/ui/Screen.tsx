@@ -11,17 +11,21 @@ import { SafeAreaView, type Edge } from 'react-native-safe-area-context'
 /**
  * Wrapper de pantalla de MecAI.
  *
- * Aplica el fondo blanco hueso (neutral-50) y el padding horizontal estándar de
- * 16px del design system (§4). Con `scrollable` envuelve el contenido en un
- * ScrollView + KeyboardAvoidingView, que es lo que necesitan las pantallas de
- * formulario para que el teclado no tape los inputs.
+ * Aplica el fondo blanco hueso (neutral-50) y el padding horizontal estándar.
+ * Con `scrollable` envuelve el contenido en un ScrollView + KeyboardAvoidingView,
+ * que es lo que necesitan las pantallas de formulario para que el teclado no
+ * tape los inputs.
+ *
+ * Nota: el padding lateral es de **20px** (`px-5`), no los 16px del design
+ * system v2.0 §4. Decisión de Dilan en el pase de pulido visual de HU-06/07 —
+ * 16px dejaba las pantallas de auth apretadas. Actualizar el DS a v2.1.
  */
 export interface ScreenProps extends ViewProps {
   /** Envuelve el contenido en ScrollView + KeyboardAvoidingView. */
   scrollable?: boolean
   /** Bordes seguros a respetar. Por defecto arriba y abajo. */
   edges?: readonly Edge[]
-  /** Desactiva el padding horizontal de 16px (pantallas full-bleed). */
+  /** Desactiva el padding horizontal (pantallas full-bleed). */
   noPadding?: boolean
   contentContainerClassName?: ScrollViewProps['contentContainerClassName']
 }
@@ -37,7 +41,7 @@ export function Screen({
   children,
   ...rest
 }: ScreenProps) {
-  const paddingClass = noPadding ? '' : 'px-4'
+  const paddingClass = noPadding ? '' : 'px-5'
 
   if (scrollable) {
     return (
@@ -52,7 +56,7 @@ export function Screen({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View className={`flex-1 ${className ?? ''}`} {...rest}>
+            <View className={`grow ${className ?? ''}`} {...rest}>
               {children}
             </View>
           </ScrollView>

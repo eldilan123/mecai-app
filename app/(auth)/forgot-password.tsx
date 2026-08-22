@@ -1,16 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { router } from 'expo-router'
-import { MailCheck } from 'lucide-react-native'
+import { Mail, MailCheck } from 'lucide-react-native'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { View } from 'react-native'
 
+import { AuthHeader } from '@/components/auth/AuthHeader'
 import { Button } from '@/components/ui/Button'
 import { FormError } from '@/components/ui/FormError'
 import { Input } from '@/components/ui/Input'
 import { Screen } from '@/components/ui/Screen'
+import { TextLink } from '@/components/ui/TextLink'
 import { Typography } from '@/components/ui/Typography'
-import { colors } from '@/constants/theme'
+import { colors, typography } from '@/constants/theme'
 import { useAuth } from '@/hooks/useAuth'
 import {
   resetPasswordSchema,
@@ -73,7 +75,15 @@ export default function ForgotPasswordScreen() {
             color={colors.neutral[700]}
             className="mt-3 max-w-[320px] text-center leading-6"
           >
-            Si hay una cuenta con {sentToEmail}, te llegó un correo para recuperar tu contraseña.
+            Si hay una cuenta con{' '}
+            <Typography
+              variant="body-lg"
+              color={colors.primary[600]}
+              style={{ fontFamily: typography.fontBodyMedium }}
+            >
+              {sentToEmail}
+            </Typography>
+            , te llegó un correo para recuperar tu contraseña.
           </Typography>
 
           <Typography
@@ -92,46 +102,41 @@ export default function ForgotPasswordScreen() {
 
   return (
     <Screen scrollable contentContainerClassName="py-8">
-      <Typography variant="display-lg">Recuperar contraseña</Typography>
-      <Typography variant="body-md" color={colors.neutral[700]} className="mt-2">
-        Escribe el email con el que te registraste y te mandamos un enlace para volver a entrar.
-      </Typography>
+      <AuthHeader
+        title="Recuperar contraseña"
+        subtitle="Ingresa tu email y te enviaremos instrucciones para restablecerla."
+        className="mb-8"
+      />
 
-      <View className="mt-8">
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <Input
-              label="Email"
-              type="email"
-              placeholder="tucorreo@ejemplo.com"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              error={errors.email?.message}
-              returnKeyType="send"
-              onSubmitEditing={() => void onSubmit()}
-            />
-          )}
-        />
-      </View>
+      <Controller
+        control={control}
+        name="email"
+        render={({ field: { onChange, onBlur, value } }) => (
+          <Input
+            label="Email"
+            type="email"
+            icon={<Mail size={20} color={colors.neutral[500]} />}
+            placeholder="tucorreo@ejemplo.com"
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            error={errors.email?.message}
+            returnKeyType="send"
+            onSubmitEditing={() => void onSubmit()}
+          />
+        )}
+      />
 
-      <FormError message={formError} className="mt-4" />
+      <FormError message={formError} className="mt-5" />
 
       <Button
-        title="Enviar enlace de recuperación"
+        title="Enviar enlace"
         loading={isSubmitting}
         onPress={() => void onSubmit()}
         className="mt-6"
       />
 
-      <Button
-        title="Volver a login"
-        variant="ghost"
-        onPress={() => router.back()}
-        className="mt-2"
-      />
+      <TextLink action="Volver a login" onPress={() => router.back()} className="mt-4" />
     </Screen>
   )
 }

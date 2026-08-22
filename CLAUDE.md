@@ -120,6 +120,20 @@ blanco hueso `#F8F7F4` (`neutral-50`). MVP solo en **light mode**.
 Usa `Typography` (`src/components/ui/Typography.tsx`) para texto: expone la escala
 `display-*`, `title-*`, `body-*`, `mono-md`.
 
+**Desviaciones del DS v2.0 acordadas con Dilan** (pase de pulido visual de
+HU-06/07). Actualizar el design system a v2.1 para que deje de haber conflicto:
+
+1. **Padding lateral de pantalla: 20px** (`px-5`), no los 16px del §4 — con 16px
+   las pantallas de auth se veían apretadas. Vive en `Screen`.
+2. **Botón GHOST en `primary-600`**, no en `neutral-700` como dice el §5 — el
+   ghost se usa como acción secundaria de marca ("Ya tengo cuenta", "Volver a
+   login") y en gris no se leía como tocable.
+
+Primitivos disponibles además de `Typography`: `Button`, `Input` (con `icon`
+leading), `Screen`, `FormError`, `Divider`, `Logo` (horizontal/monograma) y
+`TextLink` (links con 44px de área táctil). Para auth: `AuthHeader` y
+`FeatureHighlights`.
+
 ## Reglas de resolución de conflictos doc-vs-doc
 
 1. Diseño / tokens / visual → gana **Design System (04)** (es más nuevo).

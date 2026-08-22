@@ -6,8 +6,9 @@ import { View } from 'react-native'
 import { Button } from '@/components/ui/Button'
 import { FormError } from '@/components/ui/FormError'
 import { Screen } from '@/components/ui/Screen'
+import { TextLink } from '@/components/ui/TextLink'
 import { Typography } from '@/components/ui/Typography'
-import { colors } from '@/constants/theme'
+import { colors, typography } from '@/constants/theme'
 import { useAuth } from '@/hooks/useAuth'
 
 /** Segundos de espera antes de poder reenviar el correo (evita el rate limit de Supabase). */
@@ -81,7 +82,7 @@ export default function VerifyEmailScreen() {
     })
   }, [email, resendVerificationEmail, secondsLeft])
 
-  const resendTitle = secondsLeft > 0 ? `Reenviar email (${secondsLeft}s)` : 'Reenviar email'
+  const isCoolingDown = secondsLeft > 0
 
   return (
     <Screen className="py-8">
@@ -100,10 +101,13 @@ export default function VerifyEmailScreen() {
           className="mt-3 max-w-[320px] text-center leading-6"
         >
           Te enviamos un email para confirmar tu cuenta a{' '}
-          <Typography variant="body-lg" color={colors.neutral[900]}>
+          <Typography
+            variant="body-lg"
+            color={colors.primary[600]}
+            style={{ fontFamily: typography.fontBodyMedium }}
+          >
             {email ?? 'tu correo'}
           </Typography>
-          .
         </Typography>
 
         <Typography
@@ -118,15 +122,26 @@ export default function VerifyEmailScreen() {
         <FormError message={feedback?.message} tone={feedback?.tone} className="mt-6" />
       </View>
 
-      <View className="gap-3">
-        <Button
-          title={resendTitle}
-          variant="secondary"
-          loading={isResending}
-          disabled={secondsLeft > 0 || !email}
-          onPress={() => void handleResend()}
-        />
-        <Button title="Volver a login" variant="ghost" onPress={() => router.replace('/login')} />
+      <View className="items-center gap-1">
+        {/* Durante el cooldown se muestra como texto apagado y no como botón:
+            un botón que no responde invita a tocarlo igual. */}
+        {isCoolingDown ? (
+          <View className="min-h-11 justify-center">
+            <Typography variant="body-md" color={colors.neutral[500]}>
+              {`Reenviar email (${secondsLeft}s)`}
+            </Typography>
+          </View>
+        ) : (
+          <Button
+            title="Reenviar email"
+            variant="ghost"
+            loading={isResending}
+            disabled={!email}
+            onPress={() => void handleResend()}
+          />
+        )}
+
+        <TextLink action="Volver a login" onPress={() => router.replace('/login')} />
       </View>
     </Screen>
   )

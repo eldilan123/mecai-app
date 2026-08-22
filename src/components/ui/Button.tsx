@@ -11,10 +11,15 @@ import { colors, typography } from '@/constants/theme'
  * - primary:   bg-primary-600, texto blanco
  * - secondary: bg-primary-50, texto primary-600, borde primary-100
  * - danger:    bg-error/10, texto error, borde error/30
- * - ghost:     transparente, texto neutral-700
+ * - ghost:     transparente, texto primary-600
  *
  * Tamaños: sm (py-2 px-4 / 13px) · md (py-3 px-5 / 15px) · lg (py-4 px-6 / 16px)
  * Deshabilitado (o cargando): opacity 40% y sin eventos táctiles.
+ *
+ * Nota: el design system v2.0 pinta GHOST en neutral-700. Se cambió a
+ * primary-600 en el pase de pulido visual de HU-06/07 (decisión de Dilan): el
+ * ghost se usa como acción secundaria de marca ("Ya tengo cuenta", "Volver a
+ * login") y en neutral gris no se leía como tocable. Actualizar el DS a v2.1.
  */
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
 export type ButtonSize = 'sm' | 'md' | 'lg'
@@ -48,7 +53,7 @@ const VARIANT_STYLES: Record<ButtonVariant, { container: string; textColor: stri
   },
   ghost: {
     container: 'bg-transparent',
-    textColor: colors.neutral[700],
+    textColor: colors.primary[600],
   },
 }
 
@@ -90,22 +95,27 @@ export function Button({
       ].join(' ')}
       {...rest}
     >
+      {/* El contenido se mantiene montado (invisible) durante el loading para
+          que el botón conserve exactamente el mismo alto y ancho: sin esto, el
+          spinner encoge el botón y el layout salta. */}
+      <View className={`flex-row items-center ${loading ? 'opacity-0' : ''}`}>
+        {icon ? <View className="mr-2">{icon}</View> : null}
+        <Typography
+          color={variantStyle.textColor}
+          style={{
+            fontFamily: typography.fontBodyMedium,
+            fontSize: sizeStyle.fontSize,
+          }}
+        >
+          {title}
+        </Typography>
+      </View>
+
       {loading ? (
-        <ActivityIndicator size="small" color={variantStyle.textColor} />
-      ) : (
-        <>
-          {icon ? <View className="mr-2">{icon}</View> : null}
-          <Typography
-            color={variantStyle.textColor}
-            style={{
-              fontFamily: typography.fontBodyMedium,
-              fontSize: sizeStyle.fontSize,
-            }}
-          >
-            {title}
-          </Typography>
-        </>
-      )}
+        <View className="absolute inset-0 items-center justify-center">
+          <ActivityIndicator size="small" color={variantStyle.textColor} />
+        </View>
+      ) : null}
     </Pressable>
   )
 }
