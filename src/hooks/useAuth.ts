@@ -101,13 +101,18 @@ export function useAuth(): UseAuthReturn {
   }, [])
 
   const signUp = useCallback<UseAuthReturn['signUp']>(async ({ email, password, fullName }) => {
+    const redirectUrl = getAuthRedirectUrl()
+
+    // TODO(debug): log temporal para diagnosticar el redirect en Expo Go. BORRAR.
+    console.log('[DEBUG SIGNUP] emailRedirectTo will be:', redirectUrl)
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         // El trigger `handle_new_user` lee `full_name` de raw_user_meta_data.
         data: fullName ? { full_name: fullName } : undefined,
-        emailRedirectTo: getAuthRedirectUrl(),
+        emailRedirectTo: redirectUrl,
       },
     })
 

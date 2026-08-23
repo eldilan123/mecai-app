@@ -1,3 +1,4 @@
+import Constants from 'expo-constants'
 import * as Linking from 'expo-linking'
 
 /**
@@ -18,7 +19,18 @@ import * as Linking from 'expo-linking'
 export const AUTH_CALLBACK_PATH = 'auth/callback'
 
 export function getAuthRedirectUrl(): string {
-  return Linking.createURL(AUTH_CALLBACK_PATH)
+  const url = Linking.createURL(AUTH_CALLBACK_PATH)
+
+  // TODO(debug): logs temporales para diagnosticar el redirect en Expo Go.
+  // BORRAR una vez confirmado qué URL genera el dispositivo.
+  console.log('[DEBUG AUTH REDIRECT URL]:', url)
+  console.log('[DEBUG] Constants:', {
+    executionEnvironment: Constants.executionEnvironment,
+    appOwnership: Constants.appOwnership,
+    linkingUri: Constants.linkingUri,
+  })
+
+  return url
 }
 
 /** Tokens/código que puede traer un deep link de auth de Supabase. */
