@@ -84,14 +84,12 @@ export const useAuthStore = create<AuthState>()(
           if (__DEV__) {
             console.warn('[auth] No se pudo verificar los vehículos:', error.message)
           }
-          // Un fallo de red no debe reescribir lo que ya sabíamos. Pero si aún
-          // no sabíamos nada, quedarnos en `null` deja la app colgada en el
-          // loader del guard: asumimos `true` (→ Home). Es el error menos malo.
-          // Mandar a alguien con vehículos al onboarding le haría registrar un
-          // duplicado; Home, en cambio, ya tiene estado vacío y se recupera en
-          // el siguiente refresh.
+          // Un fallo de red no debe reescribir lo que ya sabíamos. Si aún no
+          // sabíamos nada, asumimos que NO tiene vehículo: el onboarding es
+          // recuperable —se re-verifica antes del INSERT final— mientras que un
+          // Home sin vehículos deja al usuario sin nada que ver y sin salida.
           if (get().hasVehicle === null) {
-            set({ hasVehicle: true })
+            set({ hasVehicle: false })
           }
           return
         }
