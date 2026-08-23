@@ -1,5 +1,7 @@
 import { isAuthError } from '@supabase/supabase-js'
 
+import type { VehicleTypeSlug } from '@/types/vehicle.types'
+
 /**
  * Helpers de formato y traducción de mensajes al usuario.
  */
@@ -138,4 +140,23 @@ export function maskEmail(email: string): string {
   }
   const visible = localPart.slice(0, 3)
   return `${visible}${localPart.length > 3 ? '***' : ''}@${domain}`
+}
+
+/**
+ * Nombre del tipo de vehículo con su posesivo, para intercalar en frases:
+ * `Elige la marca de ${typeToArticleAndNoun(type)}.`
+ *
+ * Se escribe a mano y no se deriva de `VEHICLE_TYPES[].labelEs` porque el
+ * género no es predecible desde la etiqueta ("tu carro" pero "tu moto"), y
+ * porque la etiqueta del picker es un sustantivo suelto, no parte de una frase.
+ */
+export function typeToArticleAndNoun(type: VehicleTypeSlug): string {
+  const NOUNS: Record<VehicleTypeSlug, string> = {
+    car: 'tu carro',
+    motorcycle: 'tu moto',
+    suv: 'tu SUV',
+    truck: 'tu camioneta',
+    van: 'tu van',
+  }
+  return NOUNS[type]
 }

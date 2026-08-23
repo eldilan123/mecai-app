@@ -14,6 +14,7 @@ import { colors, typography } from '@/constants/theme'
  * - Foco: borde primary-400 · Error: borde error + mensaje debajo
  * - `icon` pinta un ícono guía a la izquierda (neutral-500 → primary-600 al foco)
  * - `type="password"` añade el toggle show/hide (área táctil de 44px)
+ * - `rightSlot` pinta un control a la derecha (ej. la X de limpiar búsqueda)
  */
 export type InputType = 'text' | 'email' | 'password'
 
@@ -25,6 +26,11 @@ export interface InputProps extends Omit<TextInputProps, 'style' | 'secureTextEn
   icon?: React.ReactNode
   /** Texto de ayuda debajo del input (se oculta si hay error). */
   hint?: string
+  /**
+   * Control a la derecha del campo, dentro del borde. Se ignora en
+   * `type="password"`, que ya ocupa ese lugar con el toggle show/hide.
+   */
+  rightSlot?: React.ReactNode
   className?: string
 }
 
@@ -50,7 +56,7 @@ const TYPE_PROPS: Record<InputType, Partial<TextInputProps>> = {
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, type = 'text', icon, hint, className, onFocus, onBlur, ...rest },
+  { label, error, type = 'text', icon, hint, rightSlot, className, onFocus, onBlur, ...rest },
   ref
 ) {
   const [isFocused, setIsFocused] = useState(false)
@@ -105,6 +111,8 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
           {...TYPE_PROPS[type]}
           {...rest}
         />
+
+        {!isPassword && rightSlot ? rightSlot : null}
 
         {isPassword ? (
           <Pressable
