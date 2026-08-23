@@ -17,16 +17,21 @@ el taller."_ MVP en 3 épicas (identidad → core IA/onboarding → monetizació
 
 ## Stack (real, no el del tech spec)
 
-- **Expo SDK 56** · React 19 · React Native 0.85 · **TypeScript 6** (strict)
-- **Expo Router** (file-based, carpeta `app/` en la raíz)
+- **Expo SDK 54** · React 19.1 · React Native 0.81 · **TypeScript 5.9** (strict)
+- **Expo Router v6** (file-based, carpeta `app/` en la raíz)
 - **NativeWind v4** + **Tailwind v3** para estilos
 - **Zustand** para estado global (se integra en HUs de features)
 - Backend **Supabase** (HU-04) · IA **Claude API** vía Edge Function (HU-09+)
 - Fuentes: **Sora / Inter / JetBrains Mono** (`@expo-google-fonts`)
 
-> El tech spec (`03`) asumía SDK 52 / TS 5 / Expo Router v4; `create-expo-app@latest`
-> entrega SDK 56, que cumple el requisito "52+". Donde el spec y la realidad de la
-> librería difieran, gana la realidad de la librería (avísale a Dilan si es grande).
+> **Por qué SDK 54 y no el último:** el Expo Go de App Store y Play Store solo
+> soporta hasta SDK 54. Quedarse ahí permite testear en iPhone y Android reales
+> durante todo el MVP sin dev build. **No subas el SDK** sin hablarlo con Dilan:
+> se pierde Expo Go. El tech spec (`03`) pedía "SDK 52+", así que cumple.
+
+> `babel-preset-expo` está declarado explícito en devDependencies. No lo quites:
+> con SDK 54 npm lo anida dentro de `node_modules/expo/` y Metro no lo encuentra
+> ("Cannot find module 'babel-preset-expo'"). Al cambiar de SDK, sincronízalo.
 
 ## Comandos
 
@@ -44,9 +49,11 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 ## Estructura
 
 - `app/` — rutas (Expo Router). Grupos: `(auth)`, `(onboarding)`, `(tabs)`,
-  `maintenance/`. El root layout carga fuentes y (a futuro) providers + auth guard.
-- `src/components/{ui,chat,vehicle,maintenance}/` — componentes. `ui/` = primitivos
-  del design system.
+  `maintenance/`. El root layout carga fuentes, arranca el listener de sesión y
+  hace de **auth guard** con `<Stack.Protected>` (HU-06/07).
+- `src/components/{ui,auth,chat,vehicle,maintenance}/` — componentes. `ui/` =
+  primitivos del design system (`Button`, `Input`, `Typography`, `Screen`,
+  `FormError`, `Divider`).
 - `src/services/` — SDKs externos (supabase, claude, notifications, revenuecat, admob).
   **La app nunca llama a Claude directo**: siempre vía Edge Function.
 - `src/store/` — Zustand (`*.store.ts`). `src/hooks/` — `useX.ts`.
@@ -59,7 +66,8 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 
 - **`supabase/migrations/`** — SQL versionado (formato `YYYYMMDDHHMMSS_nombre.sql`):
   `initial_schema` (7 tablas + triggers), `indexes`, `rls_policies` (RLS en TODAS
-  las tablas), `seed_maintenance_types` (17 tipos). Ya aplicadas al proyecto remoto.
+  las tablas), `seed_maintenance_types` (17 tipos), `fix_handle_new_user_search_path`.
+  Ya aplicadas al proyecto remoto.
 - **`supabase/functions/`** — Edge Functions Deno (runtime distinto; excluidas del
   `tsc`/eslint de la app):
   - `ai-assistant` — proxy a Claude (auth + rate limiting + selección de modelo).
@@ -70,6 +78,24 @@ Pre-commit (Husky + lint-staged) corre `eslint --fix` + `prettier` sobre lo stag
 - **Tipos:** `src/types/database.types.ts`. **Regenerar** tras cambios de esquema:
   `npx supabase gen types typescript --linked > src/types/database.types.ts`
   (requiere Docker o access token del CLI).
+
+### Convenciones SQL
+
+1. **Toda función `SECURITY DEFINER` lleva `SET search_path = public`** y califica
+   sus tablas con schema (`public.profiles`, no `profiles`). `SECURITY DEFINER`
+   cambia el _usuario_ con el que corre la función, **no** su `search_path`: ese
+   lo hereda de quien la llama. Los triggers sobre `auth.users` los dispara GoTrue
+   desde un contexto sin `public`, así que sin esto fallan en runtime con
+   "relation does not exist" — y solo se nota al registrarse un usuario real, no
+   al aplicar la migración. Fue exactamente el bug de `handle_new_user()` (HU-04).
+2. **Los fixes de SQL nunca son solo remotos.** Si algo se parcha a mano en el SQL
+   Editor, hay que reflejarlo en `supabase/migrations/` o `supabase db reset`
+   revive el bug. Se corrige la migración original **in-place** y además se agrega
+   una migración nueva con el mismo `CREATE OR REPLACE`, para las BD que ya
+   aplicaron la versión rota.
+3. **`CREATE OR REPLACE` sobre `CREATE`** en funciones, para que las migraciones
+   de corrección sean idempotentes.
+4. **RLS activo en toda tabla nueva**, con su política en `rls_policies`.
 
 Comandos Supabase comunes:
 
@@ -94,6 +120,20 @@ blanco hueso `#F8F7F4` (`neutral-50`). MVP solo en **light mode**.
 Usa `Typography` (`src/components/ui/Typography.tsx`) para texto: expone la escala
 `display-*`, `title-*`, `body-*`, `mono-md`.
 
+**Desviaciones del DS v2.0 acordadas con Dilan** (pase de pulido visual de
+HU-06/07). Actualizar el design system a v2.1 para que deje de haber conflicto:
+
+1. **Padding lateral de pantalla: 20px** (`px-5`), no los 16px del §4 — con 16px
+   las pantallas de auth se veían apretadas. Vive en `Screen`.
+2. **Botón GHOST en `primary-600`**, no en `neutral-700` como dice el §5 — el
+   ghost se usa como acción secundaria de marca ("Ya tengo cuenta", "Volver a
+   login") y en gris no se leía como tocable.
+
+Primitivos disponibles además de `Typography`: `Button`, `Input` (con `icon`
+leading), `Screen`, `FormError`, `Divider`, `Logo` (horizontal/monograma) y
+`TextLink` (links con 44px de área táctil). Para auth: `AuthHeader` y
+`FeatureHighlights`.
+
 ## Reglas de resolución de conflictos doc-vs-doc
 
 1. Diseño / tokens / visual → gana **Design System (04)** (es más nuevo).
@@ -113,8 +153,45 @@ Usa `Typography` (`src/components/ui/Typography.tsx`) para texto: expone la esca
 En la raíz del repo padre (un nivel arriba): `01` brief · `02` roadmap/HUs · `03`
 tech spec · `04` design system.
 
+## Auth (HU-06 / HU-07)
+
+- **Flujo:** `(auth)/welcome` → `register` → `verify-email` · `login` →
+  `forgot-password`. Con sesión activa el guard manda a `(tabs)`.
+- **`src/hooks/useAuth.ts`** — única fuente de verdad de auth: se suscribe una
+  sola vez a `onAuthStateChange` y expone `signIn`, `signUp`, `signOut`,
+  `resetPassword`, `resendVerificationEmail` + `user`, `profile`, `isPremium`,
+  `isLoading`. Todas devuelven `AuthResult` (`{ ok, error }`), nunca lanzan.
+- **`src/hooks/useAuthDeepLink.ts`** — completa la sesión al volver del correo de
+  Supabase. Soporta flujo implícito y PKCE. La pantalla `app/auth/callback.tsx`
+  es solo la cara visible (spinner / error): sin esa ruta, Expo Router muestra
+  "Unmatched Route" al abrir el enlace.
+- **URL de retorno:** siempre `Linking.createURL('auth/callback')`
+  (`getAuthRedirectUrl()`), **nunca** `mecai://` a mano — el esquema cambia por
+  entorno: `exp://IP:PORT/--/...` en Expo Go, `mecai://...` en standalone,
+  `http://localhost:8081/...` en web.
+- **Errores:** `getAuthErrorMessage()` (`src/utils/format.utils.ts`) traduce los
+  errores de GoTrue a español. **Nunca mostrar el error crudo al usuario.**
+- **Supabase remoto:** "Confirm email" está **ON** → tras `signUp` NO hay sesión
+  hasta que el usuario abre el enlace. Google OAuth sigue deshabilitado.
+- **Redirect URLs (config manual en el dashboard).** Supabase solo respeta el
+  `redirect_to` si está en la allowlist de **Authentication → URL Configuration
+  → Redirect URLs**; si no coincide, la ignora **en silencio** y manda al Site
+  URL. Eso rompe el flujo sin dar ningún error visible. Deben estar los tres:
+
+  | Entorno                        | Entrada                    |
+  | ------------------------------ | -------------------------- |
+  | Build standalone               | `mecai://auth/callback`    |
+  | Expo Go (la IP/puerto cambian) | `exp://**`                 |
+  | Preview web                    | `http://localhost:8081/**` |
+
+  El **Site URL** debe ser una URL abrible por un navegador (una landing o
+  `http://localhost:8081`), no `mecai:` — es el fallback cuando algo no matchea,
+  y un esquema custom ahí produce el "no se pudo abrir la aplicación" de Chrome.
+
 ## Estado
 
 Épica 1 — **HU-03 (setup) ✅**, **HU-04 (Supabase) ✅** (BD + RLS + seed aplicados al
 remoto; Edge Functions escritas — deploy pendiente de un access token del CLI).
-Siguiente: HU-05 (cuentas/EAS), HU-06+ (features de la Épica 2).
+Épica 2 — **HU-06 (registro) ✅**, **HU-07 (login + sesión) ✅** (falta Google OAuth,
+pendiente de configurar Google Cloud). Siguiente: HU-05 (cuentas/EAS), HU-08
+(registro de vehículo).

@@ -6,20 +6,31 @@ import { Sora_600SemiBold, Sora_700Bold } from '@expo-google-fonts/sora'
 import { useFonts } from 'expo-font'
 import { Stack } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { StatusBar } from 'expo-status-bar'
 import { useEffect } from 'react'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 
-// Mantener el splash visible hasta que las fuentes estén listas.
+import { useAuth } from '@/hooks/useAuth'
+import { useAuthDeepLink } from '@/hooks/useAuthDeepLink'
+
+// Mantener el splash visible hasta que fuentes Y sesión estén resueltas.
 SplashScreen.preventAutoHideAsync()
 
 /**
  * Root layout de MecAI.
  *
- * Carga las fuentes del design system (Sora / Inter / JetBrains Mono) y declara
- * el Stack raíz. En HUs posteriores se montarán aquí los providers globales
- * (auth, etc.) y el auth guard que enruta entre (auth) / (onboarding) / (tabs).
+ * Responsabilidades:
+ * 1. Cargar las fuentes del design system (Sora / Inter / JetBrains Mono).
+ * 2. Arrancar el listener de sesión de Supabase (`useAuth`) y el manejo de deep
+ *    links de los correos de confirmación / recuperación (`useAuthDeepLink`).
+ * 3. Auth guard: sin sesión → grupo `(auth)`; con sesión → grupo `(tabs)`.
+ *
+ * El guard usa `<Stack.Protected>`: si la condición deja de cumplirse, Expo
+ * Router saca esas rutas del stack y navega a la primera disponible. No hay
+ * ventana en la que una pantalla privada quede visible sin sesión.
  */
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Sora_700Bold,
     Sora_600SemiBold,
     Inter_400Regular,
@@ -27,15 +38,37 @@ export default function RootLayout() {
     JetBrainsMono_400Regular,
   })
 
-  useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync()
-    }
-  }, [loaded, error])
+  const { user, isLoading: isAuthLoading } = useAuth()
+  useAuthDeepLink()
 
-  if (!loaded && !error) {
+  const isReady = (fontsLoaded || Boolean(fontError)) && !isAuthLoading
+
+  useEffect(() => {
+    if (isReady) {
+      void SplashScreen.hideAsync()
+    }
+  }, [isReady])
+
+  // Splash nativo sigue en pantalla mientras tanto.
+  if (!isReady) {
     return null
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />
+  const isSignedIn = user !== null
+
+  return (
+    <SafeAreaProvider>
+      {/* Fondo claro en toda la app (MVP solo light mode) → iconos oscuros. */}
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!isSignedIn}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
+
+        <Stack.Protected guard={isSignedIn}>
+          <Stack.Screen name="(tabs)" />
+        </Stack.Protected>
+      </Stack>
+    </SafeAreaProvider>
+  )
 }
