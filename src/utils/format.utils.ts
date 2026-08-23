@@ -143,20 +143,59 @@ export function maskEmail(email: string): string {
 }
 
 /**
- * Nombre del tipo de vehículo con su posesivo, para intercalar en frases:
- * `Elige la marca de ${typeToArticleAndNoun(type)}.`
+ * Sustantivo de cada tipo de vehículo, en minúscula salvo las siglas.
  *
- * Se escribe a mano y no se deriva de `VEHICLE_TYPES[].labelEs` porque el
- * género no es predecible desde la etiqueta ("tu carro" pero "tu moto"), y
- * porque la etiqueta del picker es un sustantivo suelto, no parte de una frase.
+ * Se escribe a mano y no se deriva de `VEHICLE_TYPES[].labelEs` porque esa
+ * etiqueta es un rótulo suelto del picker, no una palabra pensada para ir
+ * dentro de una frase.
+ */
+const TYPE_NOUNS: Record<VehicleTypeSlug, string> = {
+  car: 'carro',
+  motorcycle: 'moto',
+  suv: 'SUV',
+  truck: 'camioneta',
+  van: 'van',
+}
+
+/**
+ * Tipo con posesivo, para intercalar en frases:
+ * `Elige la marca de ${typeToArticleAndNoun(type)}.` → "…de tu carro."
  */
 export function typeToArticleAndNoun(type: VehicleTypeSlug): string {
-  const NOUNS: Record<VehicleTypeSlug, string> = {
-    car: 'tu carro',
-    motorcycle: 'tu moto',
-    suv: 'tu SUV',
-    truck: 'tu camioneta',
-    van: 'tu van',
+  return `tu ${TYPE_NOUNS[type]}`
+}
+
+/**
+ * Tipo como etiqueta suelta, capitalizada: "Carro", "Moto", "SUV".
+ * Para el resumen de confirmación, donde el valor va solo en su fila.
+ */
+export function typeToNoun(type: VehicleTypeSlug): string {
+  const noun = TYPE_NOUNS[type]
+  return noun.charAt(0).toUpperCase() + noun.slice(1)
+}
+
+/**
+ * Separador de miles con punto, como se escribe en Colombia: 150000 → "150.000".
+ *
+ * Se usa para el odómetro, donde el número es largo y sin separador es fácil
+ * equivocarse en un dígito al leerlo.
+ */
+export function formatWithDots(n: number): string {
+  return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+
+/**
+ * Lee un entero de un texto que puede venir con separadores: "150.000" → 150000.
+ *
+ * Descarta todo lo que no sea dígito, así que sirve tanto para lo que el
+ * usuario tipea como para reformatear lo que ya está en pantalla. Devuelve
+ * `null` si no queda ningún dígito.
+ */
+export function parseIntSafe(s: string): number | null {
+  const digits = s.replace(/\D/g, '')
+  if (digits === '') {
+    return null
   }
-  return NOUNS[type]
+  const n = Number.parseInt(digits, 10)
+  return Number.isNaN(n) ? null : n
 }
