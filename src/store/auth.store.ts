@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
+import { supabase } from '@/services/supabase'
 import type { AuthUser, Profile } from '@/types/auth.types'
 
 /**
@@ -24,32 +25,87 @@ export interface AuthState {
    * Lo escribe `useAuthDeepLink` y lo lee la pantalla `/auth/callback`.
    */
   linkError: string | null
+  /**
+   * ¿El usuario tiene al menos un vehículo activo?
+   *
+   * `null` significa "todavía no sabemos", y la distinción es crítica: si el
+   * guard leyera `false` durante la carga, mandaría al onboarding a alguien que
+   * sí tiene vehículos. Sólo `true` y `false` son respuestas.
+   *
+   * No se persiste: es estado del servidor, se resuelve en cada arranque.
+   */
+  hasVehicle: boolean | null
 
   setUser: (user: AuthUser | null) => void
   setProfile: (profile: Profile | null) => void
   setLoading: (isLoading: boolean) => void
   setLinkError: (linkError: string | null) => void
+  /** Setter directo, para el update optimista tras crear el vehículo (HU-08 paso 7). */
+  setHasVehicle: (hasVehicle: boolean) => void
+  /** Consulta a Supabase si el usuario tiene vehículos activos. */
+  refreshVehicleStatus: () => Promise<void>
   clearAuth: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       profile: null,
       isLoading: true,
       linkError: null,
+      hasVehicle: null,
 
       setUser: (user) => set({ user }),
       setProfile: (profile) => set({ profile }),
       setLoading: (isLoading) => set({ isLoading }),
       setLinkError: (linkError) => set({ linkError }),
-      clearAuth: () => set({ user: null, profile: null }),
+      setHasVehicle: (hasVehicle) => set({ hasVehicle }),
+
+      refreshVehicleStatus: async () => {
+        const { user } = get()
+
+        // Sin sesión no hay nada que consultar, y RLS devolvería vacío de todos
+        // modos: volvemos a "no sabemos" para que el guard no decida con datos
+        // del usuario anterior.
+        if (!user) {
+          set({ hasVehicle: null })
+          return
+        }
+
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1)
+
+        if (error) {
+          if (__DEV__) {
+            console.warn('[auth] No se pudo verificar los vehículos:', error.message)
+          }
+          // Un fallo de red no debe reescribir lo que ya sabíamos. Pero si aún
+          // no sabíamos nada, quedarnos en `null` deja la app colgada en el
+          // loader del guard: asumimos `true` (→ Home). Es el error menos malo.
+          // Mandar a alguien con vehículos al onboarding le haría registrar un
+          // duplicado; Home, en cambio, ya tiene estado vacío y se recupera en
+          // el siguiente refresh.
+          if (get().hasVehicle === null) {
+            set({ hasVehicle: true })
+          }
+          return
+        }
+
+        set({ hasVehicle: data.length > 0 })
+      },
+
+      clearAuth: () => set({ user: null, profile: null, hasVehicle: null }),
     }),
     {
       name: 'mecai-auth',
       storage: createJSONStorage(() => AsyncStorage),
-      // `isLoading` y `linkError` son estado de arranque/transitorio: no se persisten.
+      // `isLoading`, `linkError` y `hasVehicle` son estado transitorio o del
+      // servidor: no se persisten.
       partialize: (state) => ({ user: state.user, profile: state.profile }),
     }
   )

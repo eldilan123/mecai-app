@@ -33,7 +33,7 @@ async function fetchProfile(userId: string): Promise<void> {
   useAuthStore.getState().setProfile(data ?? null)
 }
 
-/** Aplica una sesión al store (usuario + perfil). */
+/** Aplica una sesión al store (usuario + perfil + estado de vehículos). */
 function applySession(session: Session | null): void {
   const { setUser, clearAuth } = useAuthStore.getState()
 
@@ -47,6 +47,11 @@ function applySession(session: Session | null): void {
   // onAuthStateChange puede bloquear el cliente (deadlock documentado).
   setTimeout(() => {
     void fetchProfile(session.user.id)
+    // Único punto donde se resuelve `hasVehicle`: este callback cubre tanto la
+    // hidratación al arrancar (INITIAL_SESSION) como el login (SIGNED_IN) y el
+    // deep link de confirmación del correo. Por eso la pantalla de login no
+    // necesita llamarlo ni navegar: el guard del root layout decide solo.
+    void useAuthStore.getState().refreshVehicleStatus()
   }, 0)
 }
 
